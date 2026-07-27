@@ -50,6 +50,8 @@ check_login() {
 
     if [ $curl_exit -ne 0 ]; then
 
+        LOGIN_TIME=0
+
         log_check \
             "LOGIN" \
             "ERROR" \
@@ -78,6 +80,12 @@ check_login() {
 
     # Convertir segundos a milisegundos
     time_ms=$(awk "BEGIN {printf \"%d\", $time_ms * 1000}")
+
+    #########################################################
+    # Guardar métrica para histórico
+    #########################################################
+
+    LOGIN_TIME="$time_ms"
 
     #########################################################
     # Código HTTP

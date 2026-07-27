@@ -28,6 +28,19 @@ source "$ROOT_DIR/lib/logger.sh"
 source "$ROOT_DIR/lib/state.sh"
 source "$ROOT_DIR/lib/report.sh"
 source "$ROOT_DIR/lib/telegram.sh"
+source "$ROOT_DIR/lib/history.sh"
+
+# ==========================================================
+# Variables globales para histórico
+# ==========================================================
+
+CPU_VALUE=0
+RAM_VALUE=0
+DISK_VALUE=0
+API_TIME=0
+LOGIN_TIME=0
+POSTGRES_TIME=0
+SSL_DAYS=0
 
 # ==========================================================
 # Checks
@@ -135,6 +148,12 @@ do
     run_check "$name" "$function"
 
 done
+
+# ==========================================================
+# Guardar histórico del monitoreo
+# ==========================================================
+
+history_save
 
 # ==========================================================
 # Enviar reporte de cambios

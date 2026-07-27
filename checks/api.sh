@@ -45,6 +45,8 @@ check_api() {
 
     if [ $curl_exit -ne 0 ]; then
 
+        API_TIME=0
+
         log_check \
             "API" \
             "ERROR" \
@@ -71,6 +73,12 @@ check_api() {
 
     # Convertir segundos a milisegundos
     time_ms=$(awk "BEGIN {printf \"%d\", $time_ms * 1000}")
+
+    #########################################################
+    # Guardar métrica para histórico
+    #########################################################
+
+    API_TIME="$time_ms"
 
     #########################################################
     # Código HTTP distinto de 200

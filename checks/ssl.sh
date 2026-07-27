@@ -20,6 +20,9 @@ check_ssl() {
 
     local global_status=0
 
+    # Histórico: guardar el certificado con menor cantidad de días restantes
+    SSL_DAYS=99999
+
     for DOMAIN in "${SSL_DOMAINS[@]}"; do
 
         local start_time
@@ -49,6 +52,8 @@ check_ssl() {
         ####################################################
 
         if [ -z "$end_date" ]; then
+
+            SSL_DAYS=0
 
             log_check \
                 "SSL" \
@@ -84,11 +89,18 @@ check_ssl() {
 
         days_left=$(((expire_epoch-now_epoch)/86400))
 
+        # Guardar el menor valor encontrado
+        if [ "$days_left" -lt "$SSL_DAYS" ]; then
+            SSL_DAYS="$days_left"
+        fi
+
         ####################################################
         # Certificado expirado
         ####################################################
 
         if [ "$days_left" -lt 0 ]; then
+
+            SSL_DAYS=0
 
             log_check \
                 "SSL" \
@@ -178,6 +190,11 @@ check_ssl() {
         fi
 
     done
+
+    # Si por alguna razón no se obtuvo ningún valor válido
+    if [ "$SSL_DAYS" = "99999" ]; then
+        SSL_DAYS=0
+    fi
 
     return "$global_status"
 

@@ -36,6 +36,8 @@ check_postgres() {
 
     if ! command -v docker >/dev/null 2>&1; then
 
+        POSTGRES_TIME=0
+
         log_check \
             "POSTGRES" \
             "ERROR" \
@@ -61,6 +63,8 @@ check_postgres() {
     #########################################################
 
     if ! docker inspect "$POSTGRES_CONTAINER" >/dev/null 2>&1; then
+
+        POSTGRES_TIME=0
 
         log_check \
             "POSTGRES" \
@@ -93,6 +97,8 @@ check_postgres() {
         "$POSTGRES_CONTAINER" 2>/dev/null)
 
     if [ "$running" != "true" ]; then
+
+        POSTGRES_TIME=0
 
         log_check \
             "POSTGRES" \
@@ -132,6 +138,12 @@ check_postgres() {
     end_time=$(date +%s%3N)
 
     elapsed=$((end_time - start_time))
+
+    #########################################################
+    # Guardar métrica para histórico
+    #########################################################
+
+    POSTGRES_TIME="$elapsed"
 
     #########################################################
     # Error de conexión
