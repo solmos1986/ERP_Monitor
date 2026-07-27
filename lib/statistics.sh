@@ -322,7 +322,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 
     echo "CPU      Avg: $(get_cpu_average)%  Max: $(get_cpu_max)%  Min: $(get_cpu_min)%"
     echo "RAM      Avg: $(get_ram_average)%  Max: $(get_ram_max)%  Min: $(get_ram_min)%"
-    echo "DISK     Avg: $(get_disk_average)%  Max: $(get_disk_max)%  Min: $(get_disk_min)%"
+    DISK_CURRENT=$(tail -n1 "$STATISTICS_FILE" | cut -d',' -f4)
+    echo "DISK     Current: ${DISK_CURRENT}%"
     echo "API      Avg: $(get_api_average) ms  Max: $(get_api_max) ms  Min: $(get_api_min) ms"
     echo "LOGIN    Avg: $(get_login_average) ms  Max: $(get_login_max) ms  Min: $(get_login_min) ms"
     echo "POSTGRES Avg: $(get_postgres_average) ms  Max: $(get_postgres_max) ms  Min: $(get_postgres_min) ms"

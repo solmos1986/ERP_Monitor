@@ -9,7 +9,7 @@
 # Responsabilidades:
 #   - Verificar gnuplot
 #   - Inicializar carpeta charts
-#   - Generar gráficos desde el histórico
+#   - Generar gráfico CPU + RAM
 #
 # NO envía Telegram.
 # NO modifica history.
@@ -50,7 +50,6 @@ charts_init() {
     fi
 
     return 0
-
 }
 
 # ==========================================================
@@ -65,49 +64,32 @@ chart_column_index() {
         | tr ',' '\n' \
         | nl -v0 \
         | awk -v c="$column" '$2==c {print $1}'
-
 }
 
 # ==========================================================
-# Función genérica para generar gráficos
+# CPU + RAM
 # ==========================================================
 
-generate_chart() {
+generate_system_chart() {
 
-    local column="$1"
-    local title="$2"
-    local ylabel="$3"
-    local output="$4"
-    local color="$5"
+    charts_init || return 1
 
-    local index
-    local yrange=""
+    local cpu_index
+    local ram_index
 
-    index=$(chart_column_index "$column")
+    cpu_index=$(chart_column_index "cpu")
+    ram_index=$(chart_column_index "ram")
 
-    if [ -z "$index" ]; then
-        echo "No existe la columna '$column'" >&2
+    if [ -z "$cpu_index" ] || [ -z "$ram_index" ]; then
+        echo "No se encontraron las columnas CPU o RAM." >&2
         return 1
     fi
-
-    # Rangos recomendados según el tipo de métrica
-    case "$column" in
-        cpu|ram|disk)
-            yrange="set yrange [0:100]"
-            ;;
-        ssl_days)
-            yrange="set yrange [0:*]"
-            ;;
-        *)
-            yrange="set autoscale y"
-            ;;
-    esac
 
     gnuplot <<EOF
 
 set terminal pngcairo enhanced size 1100,420 font "Arial,11"
 
-set output "${CHARTS_DIR}/${output}"
+set output "${CHARTS_DIR}/system_metrics.png"
 
 set datafile separator ","
 
@@ -115,10 +97,10 @@ set xdata time
 set timefmt "%Y-%m-%d %H:%M:%S"
 set format x "%H:%M"
 
-set title "${title}" font ",14"
+set title "Uso de Recursos del Sistema" font ",14"
 
 set xlabel "Hora"
-set ylabel "${ylabel}"
+set ylabel "Porcentaje (%)"
 
 set grid xtics ytics lc rgb "#DDDDDD"
 
@@ -126,178 +108,35 @@ set border linewidth 1.2
 
 set tics out
 
-set key off
+set key top left
 
 set lmargin 10
 set rmargin 5
 set tmargin 2
 set bmargin 4
 
-set style line 1 \
-    lc rgb "${color}" \
-    lw 2.5 \
-    pt 7 \
-    ps 0.6
+set yrange [0:100]
 
-$yrange
-
-plot "${CHART_HISTORY_FILE}" \
-using 1:$((index+1)) \
-with linespoints ls 1 \
-pointtype 7 \
-pointsize 0.6
+plot \
+"${CHART_HISTORY_FILE}" using 1:$((cpu_index+1)) \
+title "CPU" \
+with lines lw 2 lc rgb "#E53935", \
+"${CHART_HISTORY_FILE}" using 1:$((ram_index+1)) \
+title "RAM" \
+with lines lw 2 lc rgb "#1E88E5"
 
 EOF
-
-}
-# ==========================================================
-# CPU
-# ==========================================================
-
-generate_cpu_chart() {
-
-    charts_init || return 1
-
-    generate_chart \
-        "cpu" \
-        "Uso de CPU" \
-        "CPU (%)" \
-        "cpu.png" \
-        "#E53935"
-
 }
 
 # ==========================================================
-# RAM
-# ==========================================================
-
-generate_ram_chart() {
-
-    charts_init || return 1
-
-    generate_chart \
-        "ram" \
-        "Uso de Memoria RAM" \
-        "RAM (%)" \
-        "ram.png" \
-        "#1E88E5"
-
-}
-
-# ==========================================================
-# Disco
-# ==========================================================
-
-generate_disk_chart() {
-
-    charts_init || return 1
-
-    generate_chart \
-        "disk" \
-        "Uso de Disco" \
-        "Disco (%)" \
-        "disk.png" \
-        "#FB8C00"
-
-}
-
-# ==========================================================
-# Generar gráficos básicos
-# ==========================================================
-
-generate_basic_charts() {
-
-    generate_cpu_chart
-    generate_ram_chart
-    generate_disk_chart
-
-}
-# ==========================================================
-# Backend API
-# ==========================================================
-
-generate_api_chart() {
-
-    charts_init || return 1
-
-    generate_chart \
-        "api_ms" \
-        "Tiempo de respuesta Backend" \
-        "Milisegundos (ms)" \
-        "api.png" \
-        "#43A047"
-
-}
-
-# ==========================================================
-# Login
-# ==========================================================
-
-generate_login_chart() {
-
-    charts_init || return 1
-
-    generate_chart \
-        "login_ms" \
-        "Tiempo de Login" \
-        "Milisegundos (ms)" \
-        "login.png" \
-        "#8E24AA"
-
-}
-
-# ==========================================================
-# PostgreSQL
-# ==========================================================
-
-generate_postgres_chart() {
-
-    charts_init || return 1
-
-    generate_chart \
-        "postgres_ms" \
-        "Tiempo de respuesta PostgreSQL" \
-        "Milisegundos (ms)" \
-        "postgres.png" \
-        "#6D4C41"
-
-}
-
-# ==========================================================
-# SSL
-# ==========================================================
-
-generate_ssl_chart() {
-
-    charts_init || return 1
-
-    generate_chart \
-        "ssl_days" \
-        "Días restantes del certificado SSL" \
-        "Días" \
-        "ssl.png" \
-        "#00897B"
-
-}
-
-# ==========================================================
-# Generar TODOS los gráficos
+# Generar todos los gráficos
 # ==========================================================
 
 generate_all_charts() {
 
     charts_init || return 1
 
-    generate_cpu_chart || return 1
-    generate_ram_chart || return 1
-    generate_disk_chart || return 1
-
-    generate_api_chart || return 1
-    generate_login_chart || return 1
-    generate_postgres_chart || return 1
-
-    generate_ssl_chart || return 1
+    generate_system_chart || return 1
 
     return 0
-
 }

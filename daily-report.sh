@@ -33,10 +33,6 @@ RAM_AVG=$(get_ram_average)
 RAM_MAX=$(get_ram_max)
 RAM_MIN=$(get_ram_min)
 
-DISK_AVG=$(get_disk_average)
-DISK_MAX=$(get_disk_max)
-DISK_MIN=$(get_disk_min)
-
 API_AVG=$(get_api_average)
 API_MAX=$(get_api_max)
 API_MIN=$(get_api_min)
@@ -52,6 +48,12 @@ POSTGRES_MIN=$(get_postgres_min)
 SSL_AVG=$(get_ssl_average)
 SSL_MAX=$(get_ssl_max)
 SSL_MIN=$(get_ssl_min)
+
+# ==========================================================
+# Uso actual del disco
+# ==========================================================
+
+DISK_CURRENT=$(tail -n1 "$HISTORY_FILE" | cut -d',' -f4)
 
 # ==========================================================
 # Contar eventos del día
@@ -90,9 +92,7 @@ Máximo   : ${RAM_MAX} %
 Mínimo   : ${RAM_MIN} %
 
 💽 Disco
-Promedio : ${DISK_AVG} %
-Máximo   : ${DISK_MAX} %
-Mínimo   : ${DISK_MIN} %
+Uso actual : ${DISK_CURRENT} %
 
 🌐 Backend
 Promedio : ${API_AVG} ms
@@ -127,21 +127,9 @@ Mínimo   : ${SSL_MIN} días
 send_daily_report "$REPORT"
 
 # ==========================================================
-# Enviar gráficos
+# Enviar gráfico
 # ==========================================================
 
-send_photo "${CHARTS_DIR}/cpu.png" "CPU"
-
-send_photo "${CHARTS_DIR}/ram.png" "RAM"
-
-send_photo "${CHARTS_DIR}/disk.png" "Disco"
-
-send_photo "${CHARTS_DIR}/api.png" "Backend"
-
-send_photo "${CHARTS_DIR}/login.png" "Login"
-
-send_photo "${CHARTS_DIR}/postgres.png" "PostgreSQL"
-
-send_photo "${CHARTS_DIR}/ssl.png" "SSL"
+send_photo "${CHARTS_DIR}/system_metrics.png" "📊 Uso de CPU y Memoria RAM"
 
 exit 0
