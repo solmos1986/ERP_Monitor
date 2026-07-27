@@ -26,6 +26,7 @@ source "$ROOT_DIR/checks/disk.sh"
 source "$ROOT_DIR/checks/api.sh"
 source "$ROOT_DIR/checks/login.sh"
 source "$ROOT_DIR/checks/postgres.sh"
+source "$ROOT_DIR/checks/ssl.sh"
 
 # ==========================================================
 # Inicio
@@ -91,6 +92,7 @@ run_check "DISK" check_disk
 run_check "API" check_api
 run_check "LOGIN" check_login
 run_check "POSTGRES" check_postgres
+run_check "SSL" check_ssl
 
 # ==========================================================
 # Pie del mensaje
