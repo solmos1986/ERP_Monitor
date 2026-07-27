@@ -31,7 +31,7 @@ check_api() {
         --output /dev/null \
         --write-out "%{http_code};%{time_total}" \
         --connect-timeout "$API_TIMEOUT" \
-        "$API_URL")
+        "$API_URL/health")
 
     curl_exit=$?
 
