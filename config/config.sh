@@ -16,7 +16,7 @@ SERVER_NAME="ERP Producción Bolivia"
 DOMAIN="apigymcloud.aplus-security.com"
 
 # URL base de la API
-API_URL="https://apigymcloud.aplus-security.com"
+API_URL="https://apigymcloud.aplus-security.com/health"
 
 API_TIMEOUT=10
 
