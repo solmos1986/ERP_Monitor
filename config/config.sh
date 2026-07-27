@@ -62,8 +62,8 @@ TELEGRAM_CHAT_ID="5977858546"
 POSTGRES_HOST="erp_postgres"
 POSTGRES_PORT="5432"
 POSTGRES_DATABASE="erp_saas"
-POSTGRES_USER=""
-POSTGRES_PASSWORD=""
+POSTGRES_USER="erp_user"
+POSTGRES_PASSWORD="Erp123456!"
 
 # ==========================================================
 # DOCKER
