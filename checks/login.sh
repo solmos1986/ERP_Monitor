@@ -58,6 +58,11 @@ check_login() {
     # Convertir segundos a milisegundos
     time_ms=$(awk "BEGIN {printf \"%d\", $time_ms * 1000}")
 
+    echo "HTTP: $http_code"
+    echo "TIME: $time_ms"
+    echo "BODY: $body"
+    
+
     # ======================================================
     # Código HTTP
     # ======================================================
@@ -72,7 +77,7 @@ check_login() {
     # ======================================================
 
     token=$(echo "$body" | jq -r '.token // empty')
-
+    echo "TOKEN: $token"
     if [ -z "$token" ]; then
         log_check "LOGIN" "ERROR" "Token no recibido" "${time_ms}ms"
         return 2
