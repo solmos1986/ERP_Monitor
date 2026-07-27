@@ -11,6 +11,8 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 source "$ROOT_DIR/config/config.sh"
 source "$ROOT_DIR/lib/logger.sh"
+source "$ROOT_DIR/lib/state.sh"
+source "$ROOT_DIR/lib/report.sh"
 
 # ==========================================================
 # Ejecutar Check
@@ -27,6 +29,8 @@ check_login() {
     local token
     local curl_exit
 
+    local STATE_KEY="LOGIN"
+
     response=$(curl \
         --silent \
         --show-error \
@@ -40,13 +44,30 @@ check_login() {
 
     curl_exit=$?
 
-    # ======================================================
+    #########################################################
     # Error de conexión
-    # ======================================================
+    #########################################################
 
     if [ $curl_exit -ne 0 ]; then
-        log_check "LOGIN" "ERROR" "No fue posible conectar" ""
+
+        log_check \
+            "LOGIN" \
+            "ERROR" \
+            "No fue posible conectar" \
+            ""
+
+        if state_changed "$STATE_KEY" "ERROR"; then
+
+            report_change \
+                "LOGIN" \
+                "ERROR" \
+                "$API_URL/auth/login" \
+                "No fue posible conectar con el servicio de autenticación."
+
+        fi
+
         return 2
+
     fi
 
     body=$(echo "$response" | sed 's/HTTPSTATUS:.*//')
@@ -58,47 +79,108 @@ check_login() {
     # Convertir segundos a milisegundos
     time_ms=$(awk "BEGIN {printf \"%d\", $time_ms * 1000}")
 
-    echo "HTTP: $http_code"
-    echo "TIME: $time_ms"
-    echo "BODY: $body"
-    
-
-    # ======================================================
+    #########################################################
     # Código HTTP
-    # ======================================================
+    #########################################################
 
     if [ "$http_code" != "200" ]; then
-        log_check "LOGIN" "ERROR" "HTTP $http_code" "${time_ms}ms"
+
+        log_check \
+            "LOGIN" \
+            "ERROR" \
+            "HTTP $http_code" \
+            "${time_ms}ms"
+
+        if state_changed "$STATE_KEY" "ERROR"; then
+
+            report_change \
+                "LOGIN" \
+                "ERROR" \
+                "$API_URL/auth/login" \
+                "El servicio respondió con HTTP ${http_code}."
+
+        fi
+
         return 2
+
     fi
 
-    # ======================================================
+    #########################################################
     # Validar Token
-    # ======================================================
+    #########################################################
 
     token=$(echo "$body" | jq -r '.token // empty')
-    echo "TOKEN: $token"
+
     if [ -z "$token" ]; then
-        log_check "LOGIN" "ERROR" "Token no recibido" "${time_ms}ms"
+
+        log_check \
+            "LOGIN" \
+            "ERROR" \
+            "Token no recibido" \
+            "${time_ms}ms"
+
+        if state_changed "$STATE_KEY" "ERROR"; then
+
+            report_change \
+                "LOGIN" \
+                "ERROR" \
+                "$API_URL/auth/login" \
+                "La autenticación no devolvió un token."
+
+        fi
+
         return 2
+
     fi
 
-    # ======================================================
+    #########################################################
     # Tiempo de respuesta
-    # ======================================================
+    #########################################################
 
     if [ "$time_ms" -ge "$LOGIN_WARNING_MS" ]; then
-        log_check "LOGIN" "WARNING" "Login correcto pero lento" "${time_ms}ms"
+
+        log_check \
+            "LOGIN" \
+            "WARNING" \
+            "Login correcto pero lento" \
+            "${time_ms}ms"
+
+        if state_changed "$STATE_KEY" "WARNING"; then
+
+            report_change \
+                "LOGIN" \
+                "WARNING" \
+                "$API_URL/auth/login" \
+                "Autenticación correcta (${time_ms} ms)."
+
+        fi
+
         return 1
+
     fi
 
-    # ======================================================
-    # Todo correcto
-    # ======================================================
+    #########################################################
+    # OK
+    #########################################################
 
-    log_check "LOGIN" "OK" "Autenticación correcta" "${time_ms}ms"
+    log_check \
+        "LOGIN" \
+        "OK" \
+        "Autenticación correcta" \
+        "${time_ms}ms"
+
+    if state_changed "$STATE_KEY" "OK"; then
+
+        report_change \
+            "LOGIN" \
+            "OK" \
+            "$API_URL/auth/login" \
+            "Autenticación correcta (${time_ms} ms)."
+
+    fi
 
     return 0
+
 }
 
 # ==========================================================

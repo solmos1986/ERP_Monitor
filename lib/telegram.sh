@@ -1,84 +1,119 @@
 #!/bin/bash
-
 # ==========================================================
-# ERP Monitor V1
-# Telegram Service
+# ERP Monitor - Telegram
+# Archivo: lib/telegram.sh
+# Descripción:
+#   Funciones para enviar mensajes mediante Telegram.
 # ==========================================================
 
-# Obtener directorio del script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Cargar configuración
-source "$SCRIPT_DIR/../config/config.sh"
-source "$SCRIPT_DIR/logger.sh"
+source "$ROOT_DIR/config/config.sh"
+source "$ROOT_DIR/lib/logger.sh"
+source "$ROOT_DIR/lib/report.sh"
 
 # ==========================================================
-# Enviar mensaje a Telegram
+# Enviar mensaje
 #
 # Uso:
-# send_telegram "Mensaje"
+# send_message "<b>Hola Mundo</b>"
 # ==========================================================
+send_message() {
 
-send_telegram() {
+    local text="$1"
 
-    local MESSAGE="$1"
-
-    # Validar configuración
-    if [[ -z "$TELEGRAM_BOT_TOKEN" ]]; then
-        log_error "TELEGRAM_BOT_TOKEN no configurado."
+    if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+        log_warn "Telegram no configurado."
         return 1
     fi
 
-    if [[ -z "$TELEGRAM_CHAT_ID" ]]; then
-        log_error "TELEGRAM_CHAT_ID no configurado."
-        return 1
-    fi
+    local response
 
-    # Enviar mensaje
-    local RESPONSE
-
-    RESPONSE=$(curl --silent \
-        --show-error \
+    response=$(curl -s \
         --connect-timeout 10 \
-        --max-time 20 \
-        --request POST \
+        --max-time 30 \
+        -X POST \
         "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-        --data-urlencode "text=${MESSAGE}" \
-        --data-urlencode "parse_mode=HTML")
+        -d chat_id="$TELEGRAM_CHAT_ID" \
+        -d parse_mode="HTML" \
+        --data-urlencode text="$text")
 
-    # Verificar respuesta
-    if echo "$RESPONSE" | grep -q '"ok":true'; then
-        return 0
+    local curl_status=$?
+
+    #########################################################
+    # Error de conexión
+    #########################################################
+
+    if [ $curl_status -ne 0 ]; then
+
+        log_error "No fue posible conectar con Telegram (curl=$curl_status)."
+
+        return 1
+
     fi
 
-    log_error "No se pudo enviar el mensaje a Telegram."
-    log_error "$RESPONSE"
+    #########################################################
+    # Validar respuesta JSON
+    #########################################################
+
+    if echo "$response" | grep -q '"ok":true'; then
+
+        log_success "Mensaje enviado correctamente a Telegram."
+
+        return 0
+
+    fi
+
+    #########################################################
+    # Telegram respondió error
+    #########################################################
+
+    local description
+
+    description=$(echo "$response" \
+        | sed -n 's/.*"description":"\([^"]*\)".*/\1/p')
+
+    if [ -z "$description" ]; then
+        description="Respuesta desconocida."
+    fi
+
+    log_error "Telegram rechazó el mensaje: $description"
 
     return 1
+
 }
 
 # ==========================================================
-# Permite ejecutar el script directamente para pruebas
-#
-# ./telegram.sh "Hola"
+# Enviar reporte de cambios
 # ==========================================================
+send_change_report() {
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-
-    if [[ $# -eq 0 ]]; then
-        echo "Uso:"
-        echo "./telegram.sh \"Mensaje\""
-        exit 1
+    if ! has_changes; then
+        return 0
     fi
 
-    send_telegram "$1"
+    send_message "$(get_report)"
 
-    if [[ $? -eq 0 ]]; then
-        echo "✅ Mensaje enviado correctamente."
-    else
-        echo "❌ Error enviando mensaje."
-        exit 1
+    local result=$?
+
+    if [ $result -eq 0 ]; then
+        clear_report
     fi
 
-fi
+    return $result
+
+}
+
+# ==========================================================
+# Enviar reporte diario
+#
+# (Preparado para futuras versiones)
+# ==========================================================
+send_daily_report() {
+
+    local report="$1"
+
+    send_message "$report"
+
+}

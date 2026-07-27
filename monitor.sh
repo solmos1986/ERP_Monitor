@@ -1,25 +1,38 @@
 #!/bin/bash
-
 # ==========================================================
-# ERP Monitor V1
+# ERP Monitor
 # Archivo: monitor.sh
 # Descripción:
-# Ejecuta todos los checks y envía un resumen por Telegram.
+#   Punto de entrada principal del monitor.
+# ==========================================================
+
+set -euo pipefail
+
+# ==========================================================
+# Directorio raíz
 # ==========================================================
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ==========================================================
-# Cargar configuración
+# Configuración
 # ==========================================================
 
 source "$ROOT_DIR/config/config.sh"
 
+# ==========================================================
 # Librerías
+# ==========================================================
+
 source "$ROOT_DIR/lib/logger.sh"
+source "$ROOT_DIR/lib/state.sh"
+source "$ROOT_DIR/lib/report.sh"
 source "$ROOT_DIR/lib/telegram.sh"
 
+# ==========================================================
 # Checks
+# ==========================================================
+
 source "$ROOT_DIR/checks/cpu.sh"
 source "$ROOT_DIR/checks/ram.sh"
 source "$ROOT_DIR/checks/disk.sh"
@@ -29,106 +42,124 @@ source "$ROOT_DIR/checks/postgres.sh"
 source "$ROOT_DIR/checks/ssl.sh"
 
 # ==========================================================
-# Inicio
+# Estado general del monitor
 # ==========================================================
 
-log_info "==============================================="
-log_info "Iniciando ERP Monitor"
-log_info "Modo: $MONITOR_MODE"
-log_info "==============================================="
-
-MESSAGE="<b>📊 ERP Monitor</b>
-
-"
+MONITOR_STATUS=0
 
 # ==========================================================
-# Función para ejecutar un check
+# Registro de checks
+#
+# Formato:
+#   "Nombre|Función"
+# ==========================================================
+
+CHECKS=(
+
+    "CPU|check_cpu"
+    "RAM|check_ram"
+    "DISK|check_disk"
+    "API|check_api"
+    "LOGIN|check_login"
+    "POSTGRESQL|check_postgres"
+    "SSL|check_ssl"
+
+)
+
+# ==========================================================
+# Ejecutar un check
 # ==========================================================
 
 run_check() {
 
-    local NAME="$1"
-    local FUNCTION="$2"
+    local name="$1"
+    local function="$2"
+    local result
 
-    $FUNCTION
-    local RESULT=$?
+    log_info "Verificando ${name}..."
 
-    case $RESULT in
+    # Ejecutar el check sin que set -e finalice el monitor
+    set +e
+    "$function"
+    result=$?
+    set -e
+
+    case "$result" in
 
         0)
-            ICON="🟢"
-            STATUS="OK"
             ;;
 
         1)
-            ICON="🟡"
-            STATUS="WARNING"
+
+            if [ "$MONITOR_STATUS" -lt 1 ]; then
+                MONITOR_STATUS=1
+            fi
             ;;
 
         2)
-            ICON="🔴"
-            STATUS="CRITICAL"
+
+            MONITOR_STATUS=2
             ;;
 
         *)
-            ICON="⚫"
-            STATUS="UNKNOWN"
+
+            log_error "${name} devolvió código inesperado (${result})."
+            MONITOR_STATUS=2
             ;;
 
     esac
 
-    printf -v LINE "%-12s %s" "$NAME" "$STATUS"
-
-    MESSAGE+="${ICON} <code>${LINE}</code>"$'\n'
 }
 
 # ==========================================================
-# Ejecutar checks
+# Inicio
 # ==========================================================
 
-run_check "CPU" check_cpu
-run_check "RAM" check_ram
-run_check "DISK" check_disk
-run_check "API" check_api
-run_check "LOGIN" check_login
-run_check "POSTGRES" check_postgres
-run_check "SSL" check_ssl
+clear_report
+
+log_info "==============================================="
+log_info "Iniciando ERP Monitor"
+log_info "Ambiente : ${APP_ENV:-production}"
+log_info "Fecha    : $(date '+%Y-%m-%d %H:%M:%S')"
+log_info "==============================================="
 
 # ==========================================================
-# Pie del mensaje
+# Ejecutar todos los checks registrados
 # ==========================================================
 
-MESSAGE+=$'\n'
-MESSAGE+="<b>Modo:</b> ${MONITOR_MODE}"$'\n'
-MESSAGE+="<b>Servidor:</b> $(hostname)"$'\n'
-MESSAGE+="<b>Fecha:</b> $(date '+%d/%m/%Y %H:%M:%S')"
+for item in "${CHECKS[@]}"
+do
+
+    IFS="|" read -r name function <<< "$item"
+
+    run_check "$name" "$function"
+
+done
 
 # ==========================================================
-# Consola
+# Enviar reporte de cambios
 # ==========================================================
 
-echo
-echo "==============================================="
-echo "$MESSAGE"
-echo "==============================================="
-echo
+send_change_report
 
 # ==========================================================
-# Telegram
+# Resultado final
 # ==========================================================
 
-if [[ "$MONITOR_MODE" == "development" ]]; then
+case "$MONITOR_STATUS" in
 
-    send_telegram "$MESSAGE"
+    0)
+        log_success "ERP Monitor finalizado correctamente."
+        ;;
 
-else
+    1)
+        log_warn "ERP Monitor finalizado con advertencias."
+        ;;
 
-    # En producción luego aquí irá la lógica
-    # para enviar únicamente cambios de estado.
-    send_telegram "$MESSAGE"
+    2)
+        log_error "ERP Monitor finalizado con errores."
+        ;;
 
-fi
+esac
 
-log_success "Monitor finalizado."
-
-exit 0
+exit "$MONITOR_STATUS"
