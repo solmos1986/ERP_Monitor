@@ -7,6 +7,9 @@ BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 source "$BASE_DIR/config/config.sh"
 
+# Utilizar la zona horaria configurada
+export TZ="$TIMEZONE"
+
 source "$BASE_DIR/lib/logger.sh"
 source "$BASE_DIR/lib/history.sh"
 source "$BASE_DIR/lib/statistics.sh"
@@ -14,12 +17,18 @@ source "$BASE_DIR/lib/charts.sh"
 source "$BASE_DIR/lib/telegram.sh"
 
 # ==========================================================
+# Fecha del reporte
+# ==========================================================
+
+REPORT_DATE=$(date +%F)
+
+# ==========================================================
 # Inicializar
 # ==========================================================
 
 history_init
 statistics_load
-generate_all_charts
+generate_all_charts "$REPORT_DATE"
 
 # ==========================================================
 # Obtener estadísticas
@@ -59,7 +68,7 @@ DISK_CURRENT=$(tail -n1 "$HISTORY_FILE" | cut -d',' -f4)
 # Contar eventos del día
 # ==========================================================
 
-TODAY=$(date +%F)
+TODAY="$REPORT_DATE"
 
 EVENTS=0
 RECOVERIES=0

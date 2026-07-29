@@ -20,6 +20,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 source "$ROOT_DIR/config/config.sh"
+
+# Utilizar la zona horaria configurada por el monitor
+export TZ="$TIMEZONE"
+
 source "$ROOT_DIR/lib/history.sh"
 
 # ==========================================================
@@ -35,9 +39,11 @@ CHART_HISTORY_FILE=""
 
 charts_init() {
 
+    local report_date="$1"
+
     mkdir -p "$CHARTS_DIR"
 
-    CHART_HISTORY_FILE="${HISTORY_DIR}/$(date +%F).csv"
+    CHART_HISTORY_FILE="${HISTORY_DIR}/${report_date}.csv"
 
     if [ ! -f "$CHART_HISTORY_FILE" ]; then
         echo "No existe el histórico: $CHART_HISTORY_FILE" >&2
@@ -72,7 +78,9 @@ chart_column_index() {
 
 generate_system_chart() {
 
-    charts_init || return 1
+    local report_date="$1"
+
+    charts_init "$report_date" || return 1
 
     local cpu_index
     local ram_index
@@ -134,9 +142,9 @@ EOF
 
 generate_all_charts() {
 
-    charts_init || return 1
+    local report_date="${1:-$(date +%F)}"
 
-    generate_system_chart || return 1
+    generate_system_chart "$report_date" || return 1
 
     return 0
 }
