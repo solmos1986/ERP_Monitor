@@ -29,3 +29,13 @@ Thumbs.db
 # ==========================================
 *.tmp
 *.bak
+
+
+logs/*.log
+history/*.csv
+charts/*.png
+state/*
+!state/.gitkeep
+!logs/.gitkeep
+!history/.gitkeep
+!charts/.gitkeep
