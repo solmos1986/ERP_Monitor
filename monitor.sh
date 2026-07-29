@@ -20,6 +20,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 source "$ROOT_DIR/config/config.sh"
 
+# Aplicar la zona horaria del monitor
+export TZ="$TIMEZONE"
+
+log_info "Timezone : $TZ"
+
 # ==========================================================
 # Librerías
 # ==========================================================
@@ -29,6 +34,7 @@ source "$ROOT_DIR/lib/state.sh"
 source "$ROOT_DIR/lib/report.sh"
 source "$ROOT_DIR/lib/telegram.sh"
 source "$ROOT_DIR/lib/history.sh"
+
 
 # ==========================================================
 # Variables globales para histórico
