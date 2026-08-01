@@ -23,7 +23,7 @@ source "$ROOT_DIR/config/config.sh"
 # Aplicar la zona horaria del monitor
 export TZ="$TIMEZONE"
 
-log_info "Timezone : $TZ"
+
 
 # ==========================================================
 # Librerías
@@ -35,6 +35,7 @@ source "$ROOT_DIR/lib/report.sh"
 source "$ROOT_DIR/lib/telegram.sh"
 source "$ROOT_DIR/lib/history.sh"
 
+log_info "Timezone : $TZ"
 
 # ==========================================================
 # Variables globales para histórico
